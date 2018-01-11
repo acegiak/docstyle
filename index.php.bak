@@ -1,0 +1,89 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+require_once 'vendor/autoload.php';
+
+  session_start();
+function downloadFile($service, $fileId) {
+$response = $service->files->export($fileId, 'text/html', array('alt' => 'media'));
+$content = $response->getBody()->getContents();
+
+  $content = preg_replace("`(id=\".*?\"|style=\".*?\"|<style.*?</style>|</?span.*?>)`","",$content);
+ $content = preg_replace("`</head>`","<link rel=\"stylesheet\" type=\"text/css\" href=\"styles/".$_GET['id'].".css\"></head>",$content);
+$content = preg_replace("`<p[^>]*?class=\"title\"[^>]*>(.*?)</p>`","<strong>$1</strong>",$content);
+$content = preg_replace("`</p>[^a-zA-Z0-9]*?<p`","<br",$content);
+
+$content = preg_replace_callback("`<(li |p |h[0-9] ).*?>([ a-zA-Z0-9\-\.'\"]{0,24})`",function ($matches) {
+return strtolower("<".$matches[1]."class=\"".preg_replace("`[^a-zA-Z0-9]+`","",$matches[2])."\">").$matches[2];
+},$content);
+$content = preg_replace("`<p *class=\"\"[/>< ]*p>`","",$content);
+return $content;
+}
+
+if(isset($_GET['id']) && !isset($_SESSION['lastid'])){
+	$_SESSION['lastid'] = $_GET['id'];
+}
+
+$client = new Google_Client();
+
+$redirect_uri = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'];
+$client->setAuthConfig('creds/client_secret_103117502738-48bc16vrs6ht4kci3cojcfcg0vs1hop5.apps.googleusercontent.com.json');
+$client->setRedirectUri($redirect_uri);
+$client->setScopes('https://www.googleapis.com/auth/drive.readonly');
+
+$service = new Google_Service_Drive($client);
+
+/************************************************
+ * If we have a code back from the OAuth 2.0 flow,
+ * we need to exchange that with the
+ * Google_Client::fetchAccessTokenWithAuthCode()
+ * function. We store the resultant access token
+ * bundle in the session, and redirect to ourself.
+ ************************************************/
+if (isset($_GET['code'])) {
+  $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
+  $client->setAccessToken($token);
+  // store in the session also
+  $_SESSION['upload_token'] = $token;
+  // redirect back to the example
+  header('Location: ' . filter_var($redirect_uri, FILTER_SANITIZE_URL));
+}
+
+// set the access token as part of the client
+if (!empty($_SESSION['upload_token'])) {
+  $client->setAccessToken($_SESSION['upload_token']);
+  if ($client->isAccessTokenExpired() || isset($_GET['reset'])) {
+    unset($_SESSION['upload_token']);
+	  $authUrl = $client->createAuthUrl();
+  }
+} else {
+  $authUrl = $client->createAuthUrl();
+}
+/************************************************
+ * If we're signed in then lets try to download our
+ * file.
+ ************************************************/
+if ($client->getAccessToken()&&!isset($_GET['reset'])) {
+	if(!isset($_GET['id'])){
+		if(isset($_SESSION['lastid'])){
+  			header('Location: ' . $redirect_uri.'?id='.$_SESSION['lastid']);
+		}else{
+			echo '<form action="" method="get">Google Doc Id:<br><input type="text" name="id"><br><button type="submit">open</button></form>';
+		}
+	}else{
+		echo downloadFile($service,$_GET['id']);
+	}
+}else{
+?>
+
+<div class="box">
+This document is generated live from a google doc and so requires your permission to accept the share.
+<?php if (isset($authUrl)): ?>
+  <div class="request">
+    <a class='login' href='<?= $authUrl ?>'>Connect Me!</a>
+  </div>
+<?php endif ?>
+</div>
+<?php }
