@@ -9,7 +9,7 @@ session_start();
 
 $client = new Google_Client();
 
-$redirect_uri = 'https://' . $_SERVER['HTTP_HOST'] . "/live.php";
+$redirect_uri = 'https://' . $_SERVER['HTTP_HOST'] . "/live.php?id=".$_GET['id'];
 $client->setAuthConfig('creds/client_secret_103117502738-48bc16vrs6ht4kci3cojcfcg0vs1hop5.apps.googleusercontent.com.json');
 $client->setRedirectUri($redirect_uri);
 $client->setScopes('https://www.googleapis.com/auth/drive.readonly');
@@ -20,15 +20,15 @@ if (!empty($_SESSION['upload_token'])) {
   $client->setAccessToken($_SESSION['upload_token']);
   if ($client->isAccessTokenExpired()) {
     unset($_SESSION['upload_token']);
-//          header('Location: ' . $redirect_uri."?id=".$_GET['id']);
+          header('Location: ' . $redirect_uri."?id=".$_GET['id']);
   }
 }
 if (!$client->getAccessToken()) {
-//	  header('Location: ' . $redirect_uri."?id=".$_GET['id']);
+	  header('Location: ' . $redirect_uri."?id=".$_GET['id']);
 }
 $data = $service->files->get($_GET['id'],['fields'=>'capabilities']);
 if(!$data->capabilities->canEdit){
-//          header('Location: ' . $redirect_uri."?id=".$_GET['id']);
+          header('Location: ' . $redirect_uri."?id=".$_GET['id']);
 }
 
 $css = "";

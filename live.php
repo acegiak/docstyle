@@ -1,8 +1,15 @@
 <?php
 include_once __DIR__ . '/vendor/autoload.php';
-
-$fileId = $_GET['id'];
 session_start();
+
+if(isset($_GET['id'])){
+	$fileId = $_GET['id'];
+	$_SESSION['fileId'] = $fileId;
+}else if(isset($_SESSION['fileId'])){
+	header('Location: live.php?id='.$_SESSION['fileId']);
+}else{
+	echo '<form method="get" action="">Looks like you haven\'t specified a file to view! Please enter a Google Doc file Id here:<br><input type="text" name="id"><br><button type="submit">view</button></form>';
+}
 
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
@@ -13,7 +20,7 @@ header("Pragma: no-cache");
  * The redirect URI is to the current page, e.g:
  * http://localhost:8080/large-file-download.php
  ************************************************/
-$redirect_uri = 'https://'.$_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'].'?id='.$fileId;
+$redirect_uri = 'https://'.$_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'];
 $client = new Google_Client();
 $client->setAuthConfig('creds/client_secret_103117502738-48bc16vrs6ht4kci3cojcfcg0vs1hop5.apps.googleusercontent.com.json');
 $client->setRedirectUri($redirect_uri);
@@ -123,6 +130,12 @@ $content = preg_replace_callback("`<(b|h[0-9]|p) *>(.*?)</(b|h[0-9]|p) *>`",func
 },$content);
 
 file_put_contents('docs/'.$fileId.'.htm',$content);
+
+if($data->capabilities->canEdit){
+	$content = preg_replace("`</body`","<a href=\"edit.php?id=".$fileId."\">EDIT</a></body",$content);
+}
+
+
 echo $content;
 
 }
