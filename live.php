@@ -1,5 +1,6 @@
 <?php
 include_once __DIR__ . '/vendor/autoload.php';
+require_once('menu.php');
 session_start();
 
 if(isset($_GET['id'])){
@@ -15,7 +16,7 @@ header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 
-
+try{
 /************************************************
  * The redirect URI is to the current page, e.g:
  * http://localhost:8080/large-file-download.php
@@ -52,10 +53,13 @@ if(isset($_SESSION['upload_token'])){
   $authUrl = $client->createAuthUrl();
 }
 if (!$client->getAccessToken()) {
-?> <div class="box"> <?php if (isset($authUrl)): ?>
+?><html><head><title>Docstyle</title>
+<?php echo menu(isset($_GET['id'])?$_GET['id']:null,false,false,true);?>
+ <div class="box"> <?php if (isset($authUrl)): ?>
+<p>Hi! In order to access the live version of a document with Docstyle you'll need to grant us some Google Drive permissions! We need to be able to see Google Drive documents so we can fetch the content of the document we're viewing and also check what kind of access you have to that document!</div>
   <div class="request">
-    <a class='login' href='<?= $authUrl ?>'>Connect Me!</a>
- </div> <?php endif ?> </div>
+    <h2><a class='login' href='<?= $authUrl ?>'>Connect Me!</a></h2>
+ </div><a href="privacy.htm">Docstyle Privacy Policy</a> <?php endif ?> </div></body></html>
 <?php
 }else{
 
@@ -67,6 +71,7 @@ if(isset($_GET['raw'])){
 	echo $content;
 	exit();
 }
+
 //remove styles
 $content = preg_replace("`<style.*?</style>`","",$content);
 $content = preg_replace("`<span[^>]*font-weight:700[^>]*>(.*?)</ *span *>`","<strong>$1</strong>",$content);
@@ -129,13 +134,25 @@ $content = preg_replace_callback("`<(b|h[0-9]|p) *>(.*?)</(b|h[0-9]|p) *>`",func
 	return $ret;
 },$content);
 
+
+//setting a "textcontent" attribute for fun!
+$content = preg_replace_callback("`<(b|h[0-9]) ([^>]+)>(.*?)</(b|h[0-9])>`",function($matches){
+return "<".$matches[1]." ".$matches[2]." textcontent=\"".preg_replace("`<.*?>`","",$matches[3])."\">".$matches[3]."</".$matches[4].">";
+},$content);
+
+
 file_put_contents('docs/'.$fileId.'.htm',$content);
 
-if($data->capabilities->canEdit){
-	$content = preg_replace("`</body`","<a href=\"edit.php?id=".$fileId."\">EDIT</a></body",$content);
+if(!isset($_GET['framed'])){
+$content = preg_replace("`</head> *<body *>`",menu($fileId,$data->capabilities->canEdit,false,true),$content);
 }
 
 
 echo $content;
+
+}
+
+}catch(Google_Service_Exception $e){
+header("Location: live.php");
 
 }
