@@ -9,7 +9,8 @@ if(isset($_GET['id'])){
 }else if(isset($_SESSION['fileId'])){
 	header('Location: live.php?id='.$_SESSION['fileId']);
 }else{
-	echo '<form method="get" action="">Looks like you haven\'t specified a file to view! Please enter a Google Doc file Id here:<br><input type="text" name="id"><br><button type="submit">view</button></form>';
+
+	echo '<div class="alertspace"><form method="get" action="">Looks like you haven\'t specified a file to view! Please enter a Google Doc file Id here:<br><input type="text" name="id"><br><button type="submit">view</button></form></div>';
 }
 
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
@@ -55,11 +56,11 @@ if(isset($_SESSION['upload_token'])){
 if (!$client->getAccessToken()) {
 ?><html><head><title>Docstyle</title>
 <?php echo menu(isset($_GET['id'])?$_GET['id']:null,false,false,true);?>
- <div class="box"> <?php if (isset($authUrl)): ?>
+<div class="alertspace"> <div class="box"> <?php if (isset($authUrl)): ?>
 <p>Hi! In order to access the live version of a document with Docstyle you'll need to grant us some Google Drive permissions! We need to be able to see Google Drive documents so we can fetch the content of the document we're viewing and also check what kind of access you have to that document!</div>
   <div class="request">
     <h2><a class='login' href='<?= $authUrl ?>'>Connect Me!</a></h2>
- </div><a href="privacy.htm">Docstyle Privacy Policy</a> <?php endif ?> </div></body></html>
+ </div><a href="privacy.htm">Docstyle Privacy Policy</a> <?php endif ?> </div></div></body></html>
 <?php
 }else{
 
@@ -115,7 +116,7 @@ $content = preg_replace_callback("`<(b|h[0-9]|p) *>(.*?)</(b|h[0-9]|p) *>`",func
 
 	$identifier = safe($matches[2]);
 
-	$ret = '<'.$matches[1].' class="'.$identifier.'">'.$matches[2].'</'.$matches[1].'>';
+	$ret = '<'.$matches[1].' class="'.$identifier.'" id="'.$identifier.'">'.$matches[2].'</'.$matches[1].'>';
 
 	if($current != null){
 		$ret = '</div><div class="'.$identifier.'wrapper"><div class="'.$identifier.'section">'.$ret;
@@ -137,7 +138,7 @@ $content = preg_replace_callback("`<(b|h[0-9]|p) *>(.*?)</(b|h[0-9]|p) *>`",func
 
 //setting a "textcontent" attribute for fun!
 $content = preg_replace_callback("`<(b|h[0-9]) ([^>]+)>(.*?)</(b|h[0-9])>`",function($matches){
-return "<".$matches[1]." ".$matches[2]." textcontent=\"".preg_replace("`<.*?>`","",$matches[3])."\">".$matches[3]."</".$matches[4].">";
+return "<".$matches[1]." ".$matches[2]." title=\"".preg_replace("`<.*?>`","",$matches[3])."\">".$matches[3]."</".$matches[4].">";
 },$content);
 
 
