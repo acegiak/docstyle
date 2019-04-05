@@ -3,9 +3,6 @@ include_once __DIR__ . '/vendor/autoload.php';
 require_once('menu.php');
 session_start();
 
-use mikehaertl\wkhtmlto\Pdf;
-
-
 if(isset($_GET['id'])){
 	$fileId = $_GET['id'];
 	$_SESSION['fileId'] = $fileId;
@@ -30,10 +27,11 @@ $client->setAuthConfig('creds/client_secret_1099178135878-0r27j1cemrmtl37qvsav4t
 $client->setRedirectUri($redirect_uri);
 $client->addScope("https://www.googleapis.com/auth/drive.readonly");
 $service = new Google_Service_Drive($client);
-//print_r($client);
 
-//$about = $service->about->get();
-//print_r($about);
+$oauth2 = new \Google_Service_Oauth2($client);
+$userInfo = $oauth2->userinfo->get();
+//print_r($userInfo);
+
 /************************************************
  * If we have a code back from the OAuth 2.0 flow,
  * we need to exchange that with the
@@ -80,10 +78,6 @@ if(isset($_GET['raw'])){
 
 	exit();
 }
-
-
-
-
 
 //remove styles
 $content = preg_replace("`<style.*?</style>`","",$content);
@@ -153,21 +147,11 @@ $content = preg_replace_callback("`<(b|h[0-9]) ([^>]+)>(.*?)</(b|h[0-9])>`",func
 return "<".$matches[1]." ".$matches[2]." title=\"".preg_replace("`<.*?>`","",$matches[3])."\">".$matches[3]."</".$matches[4].">";
 },$content);
 
-file_put_contents('docs/'.$fileId.'.htm',$content);
-
-
-
-
-if(isset($_GET['pdf'])){
-                $title = preg_replace("`^.*?<title>(.*?)</title>.*?$`","$1",file_get_contents('docs/'.$fileId.'.htm'));
-                $pdf = new Pdf('https://docstyle.machinespirit.net/view.php?id='.$fileId);
-                $pdf->setOptions(array('disable-smart-shrinking','print-media-type','margin-top'=>15,'margin-bottom'=>15,'margin-left'=>5,'margin-right'=>5));
-                $pdf->send($title.".pdf");
-                exit();
+if(isset($_GET['publish'])){
+	file_put_contents('docs/'.$fileId.'.htm',$content);
 }
-
-
-
+if(isset($_GET['push'])){
+}
 
 if(!isset($_GET['framed'])){
 $content = preg_replace("`</head> *<body *>`",menu($fileId,$data->capabilities->canEdit,false,true),$content);
